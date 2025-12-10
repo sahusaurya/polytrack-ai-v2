@@ -3,7 +3,6 @@
 [![Python](https://img.shields.io/badge/Python-3.9+-blue.svg)]()
 [![PyTorch](https://img.shields.io/badge/PyTorch-ML-orange.svg)]()
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)]()
-[![Status](https://img.shields.io/badge/Status-Active-success.svg)]()
 
 Polytrack AI is a full end-to-end autonomous driving system built for the PC racing game Polytrack.  
 The agent learns using only screen pixels and issues real-time W/A/S/D key presses to control the car.
