@@ -1,48 +1,84 @@
 # Polytrack AI — Autonomous Racing Agent (Imitation Learning + Reinforcement Learning)
 
-This project implements a full end-to-end autonomous agent capable of driving and completing tracks in the PC game Polytrack using only screen pixels and W/A/S/D keyboard inputs. The system learns from human demonstrations and improves beyond them using reinforcement learning.
+[![Python](https://img.shields.io/badge/Python-3.9+-blue.svg)]()
+[![PyTorch](https://img.shields.io/badge/PyTorch-ML-orange.svg)]()
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)]()
+[![Status](https://img.shields.io/badge/Status-Active-success.svg)]()
 
-The agent uses:
-- Human demonstration recording
-- Behavior Cloning (supervised imitation learning)
-- A self-supervised Progress Predictor network
-- PPO reinforcement learning with reward shaping
-- A custom Gymnasium-compatible environment
-- Real-time screen capture and keyboard simulation
+Polytrack AI is a full end-to-end autonomous driving system built for the PC racing game Polytrack.  
+The agent learns using only screen pixels and issues real-time W/A/S/D key presses to control the car.
 
-The final result is an AI that can independently race the track and optimize its lap time.
+The system integrates:
+- Human demonstration capture  
+- Behavior Cloning (imitation learning)  
+- A self-supervised progress predictor  
+- PPO reinforcement learning  
+- Real-time screen capture  
+- Reward shaping  
+- Autonomous evaluation
 
----
-
-## Features
-
-### 1. Human Demonstration Recording
-- Records screen frames in real time.
-- Captures all W/A/S/D combinations using a 4-bit action mask (16 actions).
-- Includes hotkeys:
-  - T = restart current run
-  - F = save completed run
-- Saves timestamps, frames, actions, and lap times.
-
-### 2. Progress Predictor (Self-Supervised)
-Trains a CNN model to estimate how far along the track the car is (0 to 1).  
-This provides dense reward for the RL agent, solving the sparse-reward problem.
-
-### 3. Behavior Cloning (Imitation Learning)
-A supervised neural network that learns to imitate human driving from demonstration data.  
-Produces a baseline model: `bc_model.pth`.
-
-### 4. Mixed Reinforcement Learning (BC Warm-Start + PPO)
-PPO agent warm-starts from the BC model and learns to improve beyond human demonstrations using shaped rewards derived from the progress predictor.
-
-### 5. Real-Time Evaluation
-Test script loads the trained PPO model and drives Polytrack automatically.
+The final trained agent can drive the track independently and improve beyond human performance.
 
 ---
 
-## Repository Structure
+## 1. Project Architecture Overview
+
+Pipeline:
+
+Human Gameplay → Demo Dataset → Progress Predictor → Behavior Cloning → Mixed RL Training → Autonomous Agent
+
+### Components:
+1. **Demonstration Recorder**  
+   Captures frames, timestamps, and multi-key actions.
+
+2. **Progress Predictor (CNN)**  
+   Learns to estimate 0.0–1.0 race progress from raw frames.
+
+3. **Behavior Cloning**  
+   Warm-starts the PPO policy using supervised learning.
+
+4. **Custom Gymnasium Environment**  
+   Uses screen capture and keyboard simulation.
+
+5. **Mixed BC + PPO Reinforcement Learning**  
+   Combines BC initialization with shaped progress rewards.
+
+6. **Evaluation Script**  
+   Drives the game automatically using the final PPO model.
+
+---
+
+## 2. Features
+
+### Human Demonstration Recording
+- Captures real screen frames  
+- Encodes multi-key actions as a 4-bit mask (16 possible actions)  
+- Hotkeys:
+  - `T` = restart run  
+  - `F` = save run  
+
+### Progress Predictor Network
+A self-supervised CNN that estimates how far along the track the agent is.  
+This gives PPO dense and meaningful rewards.
+
+### Behavior Cloning
+Supervised learner that imitates human gameplay and gives PPO a strong starting policy.
+
+### Mixed Reinforcement Learning
+PPO learns to optimize lap time with:
+- BC warm-start  
+- Progress-shaped rewards  
+- Screen-based observations  
+
+### Agent Evaluation
+A script that loads the PPO model and controls the game live.
+
+---
+
+## 3. Repository Structure
+
 ```
-polytrack-ai/
+polytrack-ai-v2/
 │
 ├── src/
 │ ├── record_demo.py
@@ -55,109 +91,112 @@ polytrack-ai/
 │ ├── reward_shaping.py
 │ └── init.py
 │
-├── data/ # human demos (excluded from Git)
-├── models/ # trained models (.pth, .zip)
-│
-├── requirements.txt
 ├── .gitignore
+├── requirements.txt
 └── README.md
 ```
 ---
 
-## Installation
+## 4. Installation
 
-Create and activate a virtual environment:
+Create virtual environment:
+
 python3 -m venv venv_polytrack
 source venv_polytrack/bin/activate
 
 Install dependencies:
-```
+
 pip install -r requirements.txt
-```
+
 ---
 
-## Training Pipeline
+## 5. Training Pipeline
 
-### Step 1 — Record Human Demonstrations
-```
+### Step 1 — Record Demonstrations
+
 python src/record_demo.py
-```
+
 Controls:
-- Use W / A / S / D to drive (Down Arrow acts as S)
-- Press T to restart the current run
-- Press F to save a completed run
+- Drive with W/A/S/D  
+- Down Arrow = S  
+- `T` = restart  
+- `F` = save run  
 
-Each saved run becomes:  
-`data/run_XXX.pkl`
-
-Record at least 20 runs (50 recommended, used the same in personal training session too).
+Record 20–50 runs.
 
 ---
 
 ### Step 2 — Train Progress Predictor
-```
-python src/train_progress_predictor.py
-```
-Outputs:
-- `progress_net.pth`
 
-This model estimates track progress from frame stacks.
+python src/train_progress_predictor.py
+
+Output:
+models/progress_net.pth
 
 ---
 
 ### Step 3 — Train Behavior Cloning Model
-```
+
 python src/behavior_cloning.py
-```
-Outputs:
-- `bc_model.pth`
 
-This gives the PPO agent a good initialization.
+Output:
+models/bc_model.pth
 
 ---
 
-### Step 4 — Mixed RL Training (BC + PPO)
+### Step 4 — Mixed BC + PPO Reinforcement Learning
 
-Start Polytrack and ensure:
-- The game window is fully visible
-- The window is not minimized
-- The window position matches the configured capture region
+Polytrack must be open and visible.  
+Window position and size must match the demo recording.
 
-Then run:
-```
 python src/train_mixed.py
-```
-Outputs:
-- `ppo_mixed.zip` (final trained agent)
+
+Output:
+models/ppo_mixed.zip
 
 ---
 
-### Step 5 — Test the Trained Agent
-```
+### Step 5 — Evaluate the Trained Model
+
 python src/test_agent.py
-```
-This script loads `ppo_mixed.zip` and drives the game automatically.
+
+The agent will drive autonomously.
 
 ---
 
-## Notes
+## 6. Requirements
 
-- The game must remain visible during RL training and testing.
-- Do not move or resize the game window after recording demos.
+Dependencies (see requirements.txt):
+- PyTorch  
+- Stable-Baselines3  
+- Gymnasium  
+- OpenCV  
+- mss  
+- pynput  
+- numpy  
+- pillow  
+- pyautogui  
 
 ---
 
-## Requirements
+## 7. Notes
 
-See `requirements.txt` for full dependency list.
+- The game window must remain visible during RL training and evaluation.  
+- All demos and trained models are ignored via `.gitignore`.  
+- Changing resolution or window position will break screen capture.  
 
 ---
 
-## License
+## 8. License
 
-MIT License. You may use, modify, and distribute this project with attribution.
+MIT License.
 
+---
 
+## 9. Acknowledgments
 
-
-
+Inspired by:
+- Reinforcement learning for autonomous driving  
+- Reward shaping with progress estimation  
+- Behavior cloning for policy initialization  
+- Vision-based RL pipelines  
